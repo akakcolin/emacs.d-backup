@@ -2,16 +2,21 @@
 
 (when (>= emacs-major-version 25)
   (require 'package)
-  (setq package-archives '(("gnu"   . "https://mirrors.tuna.tsinghua.edu.cn/elpa/gnu/")
-                           ("melpa" . "https://mirrors.tuna.tsinghua.edu.cn/elpa/melpa/")
-                           ("org"   . "https://mirrors.tuna.tsinghua.edu.cn/elpa/org/")
-                           ))
+  (setq package-archives '(("gnu" . "https://elpa.gnu.org/packages/")
+			   ("melpa" . "https://melpa.org/packages/")))
+  (add-to-list 'package-archives '("org" . "http://orgmode.org/elpa/") t) ; Org-mode's repository
+  (add-to-list 'package-archives
+	       '("popkit" . "http://elpa.popkit.org/packages/"))
+  ;(setq package-archives '(("gnu"   . "https://mirrors.tuna.tsinghua.edu.cn/elpa/gnu/")
+   ;                        ("melpa" . "https://mirrors.tuna.tsinghua.edu.cn/elpa/melpa/")
+  ;                         ("org"   . "https://mirrors.tuna.tsinghua.edu.cn/elpa/org/")
+   ;                        ))
   (package-initialize))  ;; Uses mirrors from Tsinghua University
 
 ;; set user name and email address
 (setq user-full-name "Zenghui Liu"
       user-mail-address "akakcolin@163.com")
-
+;(use-package company-tabnine :ensure t)
 (add-to-list 'default-frame-alist '(fullscreen . maximized))
 ;; turn off various UI elements such as menu toolbar
 (setq inhibit-x-resources t) ;; fix cursor face using Zenburn and daemon mode
@@ -43,7 +48,7 @@
 ;; Use new bytecodes from Emacs 24.4
 (setq byte-compile--use-old-handlers nil)
 (setq ad-redefinition-action 'accept)
-
+(load-file "~/.emacs.d/geiser/build/elisp/geiser-load.el")
 (load-file "~/.emacs.d/cdlatex.el")
 (setq-default TeX-master nil)
 (mapc (lambda (mode)
@@ -65,7 +70,7 @@
 (setq visible-bell t)
 ;; (global-set-key (kbd "C-+") 'text-scale-increase)
 ;; (global-set-key (kbd "C--") 'text-scale-decrease)
-
+(require 'company-tabnine)
 (require 'ggtags)
 
 (add-hook 'c-mode-hook 'ggtags-mode)
@@ -86,6 +91,24 @@
   (lambda ()
     (highlight-parentheses-mode t)))
 (global-highlight-parentheses-mode t)
+
+;; gnuplot
+(defvar gnuplot-program "/usr/local/bin/gnuplot")
+(defvar gnuplot-flags "-persist -pointsize 2")
+
+(eval-after-load 'gnuplot-mode
+  '(add-hook 'gnuplot-mode-hook
+	     (lambda ()
+	       (flyspell-prog-mode)
+	       (add-hook 'before-save-hook
+			 'whitespace-cleanup nil t))))
+
+
+;; newLISP mode
+(add-to-list 'load-path (expand-file-name "~/.emacs.d/newlisp-mode/"))
+(load-file "~/.emacs.d/newlisp-mode/newlisp.el")
+;;(add-to-list 'auto-mode-alist '("\\.lsp$" . newlisp-mode
+;;                             ))
 
 ;; latex magic
 ;;(require 'magic-latex-buffer)
@@ -120,19 +143,27 @@
          ("\\.rdc$"    . c++-mode)
          ("\\.h$"    . c++-mode)
          ("\\.c$"   . c++-mode)
+         ("\\.src$"   . fortran-mode)
          ("\\.cc$"   . c++-mode)
          ("\\.cu$"   . c++-mode)
          ("\\.c8$"   . c++-mode)
-;;         ("\\.tex$"   . latex-mode)
+         ("\\.tex$"   . latex-mode)
+         ("\\.stex$"  . latex-mode)
 	 ("\\.pamphlet$" . latex-mode)
 	 ("Makefile.*$" . makefile-mode)
          ("\\.txt$" . indented-text-mode)
          ("\\.emacs$" . emacs-lisp-mode)
 	 ("\\.cl$" . emacs-lisp-mode)
+	 ("\\.sls$" . scheme-mode)
+	 ("\\.ss$" . scheme-mode)
+	 ("\\.ss$" . scheme-mode)
+	 ("\\.nl$" . newlisp-mode)
+	 ("\\.lsp$" . newlisp-mode)
          ("\\.gen$" . gen-mode)
          ("\\.ms$" . fundamental-mode)
          ("\\.m$" . objc-mode)
          ("\\.mm$" . objc-mode)
+	 ("\\.plt$" . gnuplot-mode)
          ) auto-mode-alist))
 
 ;;;
@@ -272,31 +303,41 @@
 
   ; Abbrevation expansion
   (abbrev-mode 1)
- 
+  
   (defun casey-header-format ()
      "Format the given file as a header file."
      (interactive)
      (setq BaseFileName (file-name-sans-extension (file-name-nondirectory buffer-file-name)))
-     (insert "#ifndef ")
+     (insert "/**************************************************************************\n")
+     (insert "                        " (file-name-nondirectory buffer-file-name) "  -  description                            \n")
+     (insert "                        ----------------------                                \n")
+ 
+     (insert "   begin                : "(format-time-string "%Y-%m-%dT%T")"     \n")
+     (insert "   copyright            : (C) 2019 by "user-full-name "                          \n")
+     (insert "   email                : "user-mail-address"                                \n")
+     (insert "**************************************************************************/\n")
+     (insert "\n")
+     (insert "/***************************************************************************\n")
+     (insert " *                                                                         *\n")
+     (insert " *   This program is free software; you can redistribute it and/or modify  *\n")
+     (insert " *   it under the terms of the GNU General Public License as published by  *\n")
+     (insert " *   the Free Software Foundation; either version 2 of the License, or     *\n")
+     (insert " *   (at your option) any later version.                                   *\n")
+     (insert " *                                                                         *\n")
+     (insert "***************************************************************************/\n")
+     (insert "#ifndef ")     
      (push-mark)
      (insert BaseFileName)
      (upcase-region (mark) (point))
      (pop-mark)
      (insert "_H\n")
-     (insert "/* ========================================================================\n")
-     (insert "   $File: $\n")
-     (insert "   $Date: $\n")
-     (insert "   $Revision: $\n")
-     (insert "   $Creator: Zenghui Liu $\n")
-     (insert "   $Notice: (C) Copyright 2018. $\n")
-     (insert "   ======================================================================== \n*/")
-     (insert "\n")
      (insert "#define ")
      (push-mark)
      (insert BaseFileName)
      (upcase-region (mark) (point))
      (pop-mark)
      (insert "_H\n")
+     (insert "\n\n")
      (insert "#endif")
   )
 
@@ -304,22 +345,34 @@
      "Format the given file as a source file."
      (interactive)
      (setq BaseFileName (file-name-sans-extension (file-name-nondirectory buffer-file-name)))
-     (insert "/* ========================================================================\n")
-     (insert "   $File: $\n")
-     (insert "   $Date: $\n")
-     (insert "   $Revision: $\n")
-     (insert "   $Creator: Zenghui Liu $\n")
-     (insert "   $Notice: (C) Copyright 2018. $\n")
-     (insert "   ======================================================================== \n*/")
+          (insert "/**************************************************************************\n")
+     (insert "                        " (file-name-nondirectory buffer-file-name) "  -  description                            \n")
+     (insert "                        ----------------------                                \n")
+ 
+     (insert "   begin                : "(format-time-string "%Y-%m-%dT%T")"     \n")
+     (insert "   copyright            : (C) 2019 by "user-full-name "                          \n")
+     (insert "   email                : "user-mail-address"                                \n")
+     (insert "**************************************************************************/\n")
+     (insert "\n")
+     (insert "/***************************************************************************\n")
+     (insert " *                                                                         *\n")
+     (insert " *   This program is free software; you can redistribute it and/or modify  *\n")
+     (insert " *   it under the terms of the GNU General Public License as published by  *\n")
+     (insert " *   the Free Software Foundation; either version 2 of the License, or     *\n")
+     (insert " *   (at your option) any later version.                                   *\n")
+     (insert " *                                                                         *\n")
+     (insert "***************************************************************************/\n")
   )
 
   (cond ((file-exists-p buffer-file-name) t)
         ((string-match "[.]hin" buffer-file-name) (casey-source-format))
         ((string-match "[.]cin" buffer-file-name) (casey-source-format))
         ((string-match "[.]h" buffer-file-name) (casey-header-format))
-        ((string-match "[.]cpp" buffer-file-name) (casey-source-format)))
+        ((string-match "[.]hpp" buffer-file-name) (casey-header-format))
+        ((string-match "[.]cpp" buffer-file-name) (casey-source-format))
+        ((string-match "[.]c" buffer-file-name) (casey-source-format)))
 
-  (defun casey-find-corresponding-file ()
+   (defun casey-find-corresponding-file ()
     "Find the file that corresponds to this one."
     (interactive)
     (setq CorrespondingFileName nil)
@@ -580,7 +633,7 @@
  '(mouse-wheel-scroll-amount (quote (15)))
  '(package-selected-packages
    (quote
-    (julia-shell julia-repl julia-mode org-pdfview pdf-tools paredit geiser autopair highlight-parentheses mmm-mode magic-latex-buffer company-c-headers slime zenburn-theme which-key volatile-highlights use-package undo-tree swiper sublime-themes smooth-scroll smex smartscan smartparens smart-mode-line rtags phi-search-mc mc-extras magit hungry-delete flycheck flx expand-region exec-path-from-shell elpy dired-narrow crux company-ghc cmake-ide cl-format bm beacon avy-zap auto-complete aggressive-indent ace-window)))
+    (company company-lsp company-math company-tabnine gnuplot-mode gnuplot newlisp-mode ## paredit-everywhere julia-shell julia-repl julia-mode org-pdfview pdf-tools paredit geiser autopair highlight-parentheses mmm-mode magic-latex-buffer company-c-headers slime zenburn-theme which-key volatile-highlights use-package undo-tree swiper sublime-themes smooth-scroll smex smartscan smartparens smart-mode-line rtags phi-search-mc mc-extras magit hungry-delete flycheck flx expand-region exec-path-from-shell elpy dired-narrow crux company-ghc cmake-ide cl-format bm beacon avy-zap auto-complete aggressive-indent ace-window)))
  '(version-control nil))
 
 
@@ -591,6 +644,9 @@
 ;;  (global-diff-hl-mode))
 
 
+(autoload 'paredit-mode "paredit"
+  "Minor mode for pseudo-structurally editing Lisp code."
+  t)
 
 (define-key global-map "\t" 'dabbrev-expand)
 (define-key global-map [S-tab] 'indent-for-tab-command)
@@ -614,14 +670,41 @@
 (eval-after-load 'hideshow 
 '(progn 
     (global-set-key (kbd "C-+") 'hs-toggle-hiding))) 
+;;;; Things that might make life easier:
+
+;; Make Emacs' "speedbar" recognize newlisp files
+(eval-after-load "speedbar" '(speedbar-add-supported-extension ".lsp"))
+
+;; Another way to use C-x C-e to eval stuff and doesn't jump to next function
+(define-key newlisp-mode-map [(control x) (control e)] 'newlisp-evaluate-prev-sexp)
+
+(add-to-list 'company-backends #'company-tabnine)
+
+;;  tabnine
+;; Trigger completion immediately.
+(setq company-idle-delay 0)
+
+;; Number the candidates (use M-1, M-2 etc to select completions).
+(setq company-show-numbers t)
+
+;; Use the tab-and-go frontend.
+;; Allows TAB to select and complete at the same time.
+(company-tng-configure-default)
+(setq company-frontends
+      '(company-tng-frontend
+        company-pseudo-tooltip-frontend
+        company-echo-metadata-frontend))
 
 (load (expand-file-name "~/quicklisp/slime-helper.el"))
 ;;(setq inferior-lisp-program "/Volumes/Merlin/ccl/dx86cl64")
 
 ;;(setq inferior-lisp-program "/Volumes/Merlin/ccl/dx86cl64")
-(setq inferior-lisp-program "/usr/local/bin/sbcl")
+;;(setq inferior-lisp-program "/usr/local/bin/sbcl")
+(setq inferior-lisp-program "/usr/local/bin/newlisp")
 ;;(setq inferior-lisp-program "/usr/local/bin/ecl")
 (setq slime-contribs '(slime-fancy))
 ;;(put 'upcase-region 'disabled nil)
 (add-to-list 'exec-path "/usr/local/bin")
+(setq scheme-program-name "/usr/local/bin/scheme")
+(setq geiser-chez-binary "/usr/local/bin/scheme")
 (setq geiser-active-implementations '(chez))
