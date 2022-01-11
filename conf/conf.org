@@ -1,0 +1,1726 @@
+#+PROPERTY: header-args :comments yes :results silent
+
+* speed init
+
+
+#+BEGIN_SRC emacs-lisp
+  (setq gc-cons-threshold 100000000)
+#+END_SRC
+
+* use-package
+
+#+BEGIN_SRC emacs-lisp
+  (eval-when-compile
+    (require 'use-package))
+  (require 'use-package-ensure)
+  (setq use-package-always-ensure t)
+
+  ;; if you use any :bind variant
+  (use-package bind-key
+    :ensure t
+    :config
+    (require 'bind-key))
+#+END_SRC
+
+* benchmark-init
+
+find which makes init slow
+~(emacs-init-time)~ can get the init time
+
+#+BEGIN_SRC emacs-lisp
+  ;; (use-package benchmark-init
+  ;;   :ensure t
+  ;;   :init
+  ;;   (benchmark-init/activate)
+  ;;   :config
+  ;;   ;; To disable collection of benchmark data after init is done.
+  ;;   (add-hook 'after-init-hook 'benchmark-init/deactivate))
+#+END_SRC
+
+* diminish
+
+#+BEGIN_SRC emacs-lisp
+  (use-package diminish
+    :ensure t
+    :config
+    (require 'diminish))
+#+END_SRC
+
+* backup
+
+#+BEGIN_SRC emacs-lisp
+  ;; https://www.emacswiki.org/emacs/BackupDirectory
+  (setq backup-directory-alist
+        `((".*" . "~/.emacs.d/backup/")))
+  (setq auto-save-file-name-transforms
+        `((".*" "~/.emacs.d/backup/" t)))
+#+END_SRC
+
+* replace tab with space
+#+BEGIN_SRC emacs-lisp
+  (setq-default indent-tabs-mode nil)
+  (setq-default tab-width 4)
+  (setq indent-line-function 'insert-tab)
+#+END_SRC
+
+* utf-8 encoding
+
+#+BEGIN_SRC emacs-lisp
+  (setq locale-coding-system 'utf-8)
+  (set-terminal-coding-system 'utf-8)
+  (set-keyboard-coding-system 'utf-8)
+  (set-selection-coding-system 'utf-8)
+  (prefer-coding-system 'utf-8)
+#+END_SRC
+
+* display time
+
+#+BEGIN_SRC emacs-lisp
+  ;; (setq display-time-24hr-format t)
+  ;; (setq display-time-format "%H:%M")
+  ;; (display-time-mode 1)
+#+END_SRC
+
+* yes-or-no
+
+#+BEGIN_SRC emacs-lisp
+  (fset 'yes-or-no-p 'y-or-n-p) ; yes/no -> y/n
+#+END_SRC
+
+* font
+
+#+BEGIN_SRC emacs-lisp
+  ;; (set-frame-font "JetBrains Mono 20" nil t) ; https://www.jetbrains.com/lp/mono/
+  ;; (set-frame-font "Ubuntu Mono 20" nil t) ; resolve org-mode chinese/english align issue
+#+END_SRC
+
+* global ui
+
+#+BEGIN_SRC emacs-lisp
+  (setq inhibit-startup-screen t) ; hide the welcome screen
+  (setq initial-major-mode 'text-mode)
+  (add-to-list 'default-frame-alist '(fullscreen . maximized))
+  (setq inhibit-x-resources t) ;; fix cursor face using Zenburn and daemon mode
+  (tooltip-mode 1)
+  (menu-bar-mode -1) ; hide menu bar
+  (tool-bar-mode -1) ; hide tool bar
+  (line-number-mode 1)
+  (setq visible-bell 0)
+  (setq ring-bell-function 'ignore)
+  (blink-cursor-mode 0)
+  (scroll-bar-mode -1) ; hide scroll bar
+  (global-linum-mode -1) ; hide line number
+  (global-visual-line-mode 1)
+  (visual-line-mode 1) ; word wrap
+  (global-hl-line-mode 1) ; highlight current line
+  (global-auto-revert-mode t)
+  (setq column-number-mode t)
+  (flyspell-prog-mode)
+  (setq initial-major-mode 'emacs-lisp-mode) ;; make scratch buffer emacs-lisp-mode
+  (add-hook 'emacs-lisp-mode-hook
+    (lambda()
+    (setq mode-name "Elisp")))
+  ;; startup screen customization
+  (setq inhibit-splash-screen t)
+  (setq inhibit-startup-message t)
+  (setq enable-recursive-minibuffers t)
+  ;; turn on view-mode for
+
+  (require 'solaire-mode)
+  (solaire-global-mode +1)
+
+#+END_SRC
+
+* save-cursor-position
+
+#+BEGIN_SRC emacs-lisp
+  (save-place-mode t)
+  (setq save-place-file "~/.emacs.d/saveplace")
+  (setq-default save-place t)
+#+END_SRC
+
+
+* transparency
+
+#+BEGIN_SRC emacs-lisp
+  ;; (set-frame-parameter (selected-frame) 'alpha '(85 100))
+  ;; (add-to-list 'default-frame-alist '(alpha 85 100))
+#+END_SRC
+
+* smart-line
+
+#+BEGIN_SRC emacs-lisp
+  (defun duplicate-line()
+    (interactive)
+    (move-beginning-of-line 1)
+    (kill-line)
+    (yank)
+    (open-line 1)
+    (next-line 1)
+    (yank))
+  (global-set-key (kbd "C-c C-`") 'duplicate-line)
+
+  (defun smart-open-line ()
+    "Insert an empty line after the current line. Position the cursor at its beginning, according to the current mode."
+    (interactive)
+    (move-end-of-line nil)
+    (newline-and-indent))
+  (defun smart-open-line-above ()
+    "Insert an empty line above the current line. Position the cursor at it's beginning, according to the current mode."
+    (interactive)
+    (move-beginning-of-line nil)
+    (newline-and-indent)
+    (forward-line -1)
+    (indent-according-to-mode))
+  (global-set-key (kbd "s-<return>") 'smart-open-line)
+  (global-set-key (kbd "s-S-<return>") 'smart-open-line-above)
+
+  (defun move-below-line-up ()
+    "Join the current line with the next line."
+    (interactive)
+    (delete-indentation 1))
+  (global-set-key (kbd "s-j") 'move-below-line-up)
+
+  (global-set-key (kbd "C-M-l") 'goto-line)
+
+  ; Navigation
+  (defun previous-blank-line ()
+  "Moves to the previous line containing nothing but whitespace."
+  (interactive)
+  (search-backward-regexp "^[ \t]*\n")
+  )
+  (defun next-blank-line ()
+    "Moves to the next line containing nothing but whitespace."
+    (interactive)
+    (forward-line)
+    (search-forward-regexp "^[ \t]*\n")
+    (forward-line -1))
+
+(define-key global-map [C-right] 'forward-word)
+(define-key global-map [C-left] 'backward-word)
+(define-key global-map [C-up] 'previous-blank-line)
+(define-key global-map [C-down] 'next-blank-line)
+(define-key global-map [home] 'beginning-of-line)
+(define-key global-map [end] 'end-of-line)
+(define-key global-map [pgup] 'forward-page)
+(define-key global-map [pgdown] 'backward-page)
+(define-key global-map [C-next] 'scroll-other-window)
+(define-key global-map [C-prior] 'scroll-other-window-down)
+
+
+(define-key global-map "\e " 'set-mark-command)
+(define-key global-map "\eq" 'append-as-kill)
+(define-key global-map "\ea" 'yank)
+
+(define-key global-map [M-up] 'previous-blank-line)
+(define-key global-map [M-down] 'next-blank-line)
+(define-key global-map [M-right] 'forward-word)
+(define-key global-map [M-left] 'backward-word)
+
+(define-key global-map "\e:" 'View-back-to-mark)
+(define-key global-map "\e;" 'exchange-point-and-mark)
+
+(define-key global-map [f9] 'first-error)
+(define-key global-map [f10] 'previous-error)
+(define-key global-map [f11] 'next-error)
+
+(define-key global-map "\en" 'next-error)
+(define-key global-map "\eN" 'previous-error)
+
+(define-key global-map "\eg" 'goto-line)
+(define-key global-map "\ej" 'imenu)
+
+; Editting
+(define-key global-map "" 'copy-region-as-kill)
+(define-key global-map "" 'yank)
+(define-key global-map "" 'nil)
+(define-key global-map "" 'rotate-yank-pointer)
+(define-key global-map "\eu" 'undo)
+(define-key global-map "\e6" 'upcase-word)
+(define-key global-map "\e^" 'captilize-word)
+(define-key global-map "\e." 'fill-paragraph)
+
+;; copy from my emacs.d
+(defun find-project-directory-recursive ()
+  "Recursively search for a makefile."
+  (interactive)
+  (if (file-exists-p casey-makescript) t
+      (cd "../")
+      (find-project-directory-recursive)))
+
+(defun lock-compilation-directory ()
+  "The compilation process should NOT hunt for a makefile"
+  (interactive)
+  (setq compilation-directory-locked t)
+  (message "Compilation directory is locked."))
+
+(defun unlock-compilation-directory ()
+  "The compilation process SHOULD hunt for a makefile"
+  (interactive)
+  (setq compilation-directory-locked nil)
+  (message "Compilation directory is roaming."))
+
+(defun find-project-directory ()
+  "Find the project directory."
+  (interactive)
+  (setq find-project-from-directory default-directory)
+  (switch-to-buffer-other-window "*compilation*")
+  (if compilation-directory-locked (cd last-compilation-directory)
+  (cd find-project-from-directory)
+  (find-project-directory-recursive)
+  (setq last-compilation-directory default-directory)))
+
+(defun make-without-asking ()
+  "Make the current build."
+  (interactive)
+  (if (find-project-directory) (compile casey-makescript))
+  (other-window 1))
+(define-key global-map "\em" 'make-without-asking)
+
+
+; Startup windowing
+(setq next-line-add-newlines nil)
+(setq-default truncate-lines t)
+(setq truncate-partial-width-windows nil)
+(split-window-horizontally)
+
+
+(use-package ox-hugo
+:ensure t)
+(use-package org-static-blog
+:ensure t)
+(use-package projectile
+:ensure t)
+(use-package f
+:ensure t)
+
+
+
+(define-key global-map "\t" 'dabbrev-expand)
+(define-key global-map [S-tab] 'indent-for-tab-command)
+(define-key global-map [backtab] 'indent-for-tab-command)
+;;(define-key global-map "\C-y" 'indent-for-tab-command)
+(define-key global-map [C-tab] 'indent-region)
+(define-key global-map "	" 'indent-region)
+
+;; use company-mode in all buffers
+(add-hook 'after-init-hook 'global-company-mode)
+
+(custom-set-faces
+ ;; custom-set-faces was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ '(default ((t (:background nil)))))
+
+(add-hook 'ess-mode-hook 'hs-minor-mode)
+
+(eval-after-load 'hideshow
+'(progn
+    (global-set-key (kbd "C-+") 'hs-toggle-hiding)))
+;;;; Things that might make life easier:
+
+;; Make Emacs' "speedbar" recognize newlisp files
+(eval-after-load "speedbar" '(speedbar-add-supported-extension ".lsp"))
+
+#+END_SRC
+
+* comment code
+
+#+BEGIN_SRC emacs-lisp
+  (defun comment-region-or-line ()
+    "Comments or uncomments the region or the current line if there's no active region."
+    (interactive)
+    (let (beg end)
+      (if (region-active-p)
+          (setq beg (region-beginning) end (region-end))
+        (setq beg (line-beginning-position) end (line-end-position)))
+      (comment-or-uncomment-region beg end)))
+
+  (global-set-key (kbd "s-/") 'comment-region-or-line)
+#+END_SRC
+
+* beacon
+
+#+BEGIN_SRC emacs-lisp
+    ;; https://github.com/Malabarba/beacon
+  (use-package beacon
+    :ensure t
+    :config
+    (beacon-mode 1)
+    (setq beacon-blink-duration 0.5)
+    ;; (setq beacon-color "green")
+    )
+#+END_SRC
+
+* theme
+
+#+BEGIN_SRC emacs-lisp
+     ;;(use-package sublime-themes
+     ;;  :ensure t
+     ;;  :config
+     ;;  (load-theme 'sublime t))
+
+     (use-package zenburn-theme
+      :ensure t
+      :config
+      (load-theme 'zenburn t))
+
+
+  ;; 'sublime-themes (custom-enabled-themes '(tsdh-dark))
+
+    ;;(use-package atom-one-dark-theme
+    ;;  :ensure t
+    ;;  :config
+    ;;  (load-theme 'atom-one-dark t))
+
+
+    ;;(use-package solarized-theme
+     ;;  :ensure t
+      ;; :config
+       ;;(load-theme 'solarized-light t)
+     ;;  (load-theme 'solarized-dark t)
+  ;;)
+
+    ;; (use-package spacemacs-theme
+    ;;   :defer t
+    ;;   :init (load-theme 'spacemacs-dark t))
+#+END_SRC
+
+* mode line
+
+#+BEGIN_SRC emacs-lisp
+  ;; (use-package powerline
+  ;;   :ensure t
+  ;;   :config
+  ;;   (powerline-default-theme)
+  ;;   ;; (powerline-center-theme)
+  ;;   ;; (powerline-center-evil-theme)
+  ;;   ;; (powerline-vim-theme)
+  ;;   ;; (powerline-nano-theme)
+  ;;   )
+#+END_SRC
+
+#+BEGIN_SRC emacs-lisp
+  (use-package spaceline
+    :ensure t
+    :config
+    (require 'spaceline-config)
+    (spaceline-emacs-theme))
+#+END_SRC
+
+* exec-path-from-shell
+
+#+BEGIN_SRC emacs-lisp
+  (use-package exec-path-from-shell
+    :ensure t
+    :config
+    (when (memq window-system '(mac ns x))
+      (exec-path-from-shell-initialize)
+      ;; (exec-path-from-shell-copy-envs '("PATH"))
+      ))
+#+END_SRC
+
+* auto-mode
+
+
+#+BEGIN_SRC emacs-lisp
+    (setq auto-mode-alist
+          (append
+           '(("\\.cpp$"    . c++-mode)
+             ("\\.hin$"    . c++-mode)
+             ("\\.cin$"    . c++-mode)
+             ("\\.inl$"    . c++-mode)
+             ("\\.rdc$"    . c++-mode)
+             ("\\.h$"    . c++-mode)
+             ("\\.c$"   . c++-mode)
+             ("\\.cc$"   . c++-mode)
+             ("\\.cu$"   . c++-mode)
+             ("\\.c8$"   . c++-mode)
+             ("\\.f90$"   . f90-mode)
+             ("\\.rs$"   . rust-mode)
+             ("\\.ui$"   . xml-mode)
+             ("\\.xml$"   . xml-mode)
+             ("\\.tex$"   . latex-mode)
+             ("\\.stex$"  . latex-mode)
+             ("\\.pamphlet$" . latex-mode)
+             ("Makefile.*$" . makefile-mode)
+             ("\\.txt$" . indented-text-mode)
+             ("\\.emacs$" . emacs-lisp-mode)
+             ("\\.cl$" . emacs-lisp-mode)
+             ("\\.sls$" . scheme-mode)
+             ("\\.ss$" . scheme-mode)
+             ("\\.ss$" . scheme-mode)
+             ("\\.nl$" . newlisp-mode)
+             ("\\.lsp$" . newlisp-mode)
+             ("\\.gen$" . gen-mode)
+             ("\\.ms$" . fundamental-mode)
+             ("\\.m$" . objc-mode)
+             ("\\.mm$" . objc-mode)
+             ("\\.plt$" . gnuplot-mode)
+             ("\\.gp$" . gnuplot-mode)
+             )
+             auto-mode-alist))
+#+END_SRC
+
+* yasnippet
+
+  #+BEGIN_SRC emacs-lisp
+    (use-package yasnippet
+      :ensure t
+      :defer 5
+      :config
+      (yas-reload-all)
+      (setq yas-wrap-around-region t)
+      :hook (('prog-mode     . 'yas-minor-mode)
+             ('org-mode      . 'yas-minor-mode)
+             ('LaTeX-mode    . 'yas-minor-mode)
+             ('rust-mode    . 'yas-minor-mode)
+             ('text-mode    . 'yas-minor-mode)
+             ('python-mode    . 'yas-minor-mode)
+             ('xml-mode    . 'yas-minor-mode)
+             ('rust-mode    . 'yas-minor-mode)
+             ('markdown-mode . 'yas-minor-mode)))
+
+    (use-package yasnippet-snippets
+      :ensure t
+      :after yasnippet)
+  #+END_SRC
+
+* recentf
+
+#+BEGIN_SRC emacs-lisp
+  (use-package recentf
+    :ensure t
+    :config
+    (recentf-mode 1)
+    (setq recentf-max-saved-items 200
+          recentf-max-menu-items 15)
+    (run-at-time nil (* 5 60) 'recentf-save-list))
+#+END_SRC
+
+* projectile
+
+#+BEGIN_SRC emacs-lisp
+  (use-package projectile
+    :ensure t
+    :config
+    (projectile-mode +1)
+    (setq projectile-completion-system 'ivy)
+    (setq projectile-dynamic-mode-line nil)
+    :bind-keymap
+    ("s-p" . projectile-command-map))
+
+  ;; (use-package helm-projectile
+  ;;   :ensure t
+  ;;   :config
+  ;;   (projectile-global-mode 1)
+  ;;   (helm-projectile-on)
+  ;;   ;; (setq projectile-completion-system 'helm)
+  ;;   (setq projectile-switch-project-action 'helm-projectile)
+  ;;   )
+#+END_SRC
+
+* helm
+#+BEGIN_SRC emacs-lisp
+
+;; [[file:init.org::* “Being at the Helm” ---Completion & Narrowing Framework][ “Being at the Helm” ---Completion & Narrowing Framework:1]]
+(use-package helm
+ :diminish
+ :init (helm-mode t)
+ :bind (("M-x"     . helm-M-x)
+        ("C-x C-f" . helm-find-files)
+        ("C-x b"   . helm-mini)     ;; See buffers & recent files; more useful.
+        ("C-x r b" . helm-filtered-bookmarks)
+        ("C-x C-r" . helm-recentf)  ;; Search for recently edited files
+        ("C-c i"   . helm-imenu)
+        ("C-h a"   . helm-apropos)
+        ;; Look at what was cut recently & paste it in.
+        ("M-y" . helm-show-kill-ring)
+
+        :map helm-map
+        ;; We can list ‘actions’ on the currently selected item by C-z.
+        ("C-z" . helm-select-action)
+        ;; Let's keep tab-completetion anyhow.
+        ("TAB"   . helm-execute-persistent-action)
+        ("<tab>" . helm-execute-persistent-action)))
+;;  “Being at the Helm” ---Completion & Narrowing Framework:1 ends here
+
+;; [[file:init.org::* “Being at the Helm” ---Completion & Narrowing Framework][ “Being at the Helm” ---Completion & Narrowing Framework:2]]
+(setq helm-mini-default-sources '(helm-source-buffers-list
+                                    helm-source-recentf
+                                    helm-source-bookmarks
+                                    helm-source-bookmark-set
+                                    helm-source-buffer-not-found))
+;;  “Being at the Helm” ---Completion & Narrowing Framework:2 ends here
+
+;; [[file:init.org::* “Being at the Helm” ---Completion & Narrowing Framework][ “Being at the Helm” ---Completion & Narrowing Framework:3]]
+;;(system-packages-ensure "surfraw")
+; ⇒  “M-x helm-surfraw” or “C-x c s”
+;;  “Being at the Helm” ---Completion & Narrowing Framework:3 ends here
+
+;; [[file:init.org::* “Being at the Helm” ---Completion & Narrowing Framework][ “Being at the Helm” ---Completion & Narrowing Framework:4]]
+(use-package helm-swoop
+  :bind  (("C-s"     . 'helm-swoop)           ;; search current buffer
+          ("C-M-s"   . 'helm-multi-swoop-all) ;; Search all buffer
+          ;; Go back to last position where ‘helm-swoop’ was called
+          ("C-S-s" . 'helm-swoop-back-to-last-point)
+          ;; swoop doesn't work with PDFs, use Emacs' default isearch instead.
+          ; :map pdf-view-mode-map ("C-s" . isearch-forward)
+          )
+  :custom (helm-swoop-speed-or-color nil "Give up colour for speed.")
+          (helm-swoop-split-with-multiple-windows nil "Do not split window inside the current window."))
+;;  “Being at the Helm” ---Completion & Narrowing Framework:4 ends here
+#+END_SRC
+* ivy
+
+- [[https://oremacs.com/swiper][ivy user manual]]
+- [[https://writequit.org/denver-emacs/presentations/2017-04-11-ivy.html][ivy demo]]
+
+| Key        | Command                 | Description                                    |
+|------------+-------------------------+------------------------------------------------|
+| M-n        | ivy-next-line           | Next line                                      |
+| M-p        | ivy-previous-line       | Previous line                                  |
+| M-<        | ivy-beginning-of-buffer | Beginning of the Ivy minibuffer                |
+| M->        | ivy-end-of-buffer       | End of the Ivy minibuffer                      |
+| C-v        | ivy-scroll-up-command   | Page up by one Ivy buffer size                 |
+| M-v        | ivy-scroll-down-command | Page down by one Ivy buffer size               |
+| C-m or RET | ivy-done                | Calls the default action                       |
+| ~C-M-m~      | ivy-call                | Calls the default action, keeps Ivy open       |
+| ~M-o~        | ivy-dispatching-done    | Displays the available actions                 |
+| ~C-M-o~      | ivy-dispacthing-call    | Displays available actions, keeps Ivy open     |
+| C-'        | ivy-avy                 | Uses Avy to select candidates                  |
+| TAB        | ivy-partial-or-done     | Tab completion, repeated presses may call done |
+|            | ivy-resume              | Restart Ivy before last action                 |
+
+#+BEGIN_SRC emacs-lisp
+  (use-package counsel
+    :ensure t
+    :config
+    (ivy-mode 1)
+    (setq ivy-use-virtual-buffers t)
+    (setq enable-recursive-minibuffers t)
+    (setq ivy-count-format "(%d/%d) ")
+    :bind
+    (("C-s"     . 'swiper-isearch)
+     ("M-x"     . 'counsel-M-x)
+     ("M-y"     . 'counsel-yank-pop)
+     ("C-x C-f" . 'counsel-find-file)
+     ("C-x b"   . 'ivy-switch-buffer)
+
+     ;; ("M-n" . ivy-next-history-element)
+     ;; ("M-p" . ivy-previous-history-element)
+     ;; ("M-i" . ivy-insert-current)
+     ;; ("M-j" . ivy-yank-word)
+
+     ("C-c C-r" . 'ivy-resume)
+     ("C-c v"   . 'ivy-push-view)
+     ("C-c V"   . 'ivy-pop-view)
+     ("C-c k"   . 'counsel-rg)
+     ("C-x l"   . 'counsel-locate)))
+#+END_SRC
+
+* multiple cursor
+
+#+BEGIN_SRC emacs-lisp
+  (use-package multiple-cursors
+    :ensure t
+    :defer 5
+    :bind
+    (("C-x C-v" . 'mc/edit-lines)
+     ("C->" . 'mc/mark-next-like-this)
+     ("C-<" . 'mc/mark-previous-like-this)
+     ("C-x C-a" . 'mc/mark-all-like-this)))
+#+END_SRC
+
+* magit & forge
+
+** cherry pick [fn:1] [fn:2]
+
+- ~M-x magit-status~ to enter open a Magit buffer
+- ~b v~ to list current branches
+- select branch to receive patch, RET to checkout
+- ~l rl~ to list patches from this branch to the branch with the cherries (or l rL, long diff)
+- select the patch to cherry-pick
+- ~A~ to bring the patch onto the current branch
+
+#+BEGIN_SRC emacs-lisp
+  (use-package magit
+    :ensure t
+    :bind (("C-x g"   . 'magit-status)
+           ("C-c g"   . 'magit-dispatch-popup)
+           ("C-c M-g" . 'magit-file-dispatch)))
+
+  ;; (use-package forge
+  ;;   :ensure t
+  ;;   :after magit)
+#+END_SRC
+
+* ace window
+
+#+BEGIN_SRC emacs-lisp
+  (use-package ace-window
+    :ensure t
+    :bind (("M-o" . 'ace-window)))
+#+END_SRC
+
+* which key
+
+#+BEGIN_SRC emacs-lisp
+  (use-package which-key
+    :ensure t
+    :config
+    (which-key-mode))
+#+END_SRC
+
+* neotree
+
+|---------+-----------------------------------------------------------------|
+| n       | next line, p previous line.                                     |
+| SPC     | or RET or TAB Open current item if it is a file.                |
+| U       | Go up a directory                                               |
+| g       | Refresh                                                         |
+| A       | Maximize/Minimize the NeoTree Window                            |
+| H       | Toggle display hidden files                                     |
+| <       | beginning-of-buffer                                             |
+| >       | end-of-buffer                                                   |
+| ?       | describe-mode                                                   |
+|---------+-----------------------------------------------------------------|
+| C-c C-n | Create a file or create a directory if filename ends with a ‘/’ |
+| C-c C-d | Delete a file or a directory.                                   |
+| C-c C-r | Rename a file or a directory.                                   |
+| C-c C-c | Change the root directory.                                      |
+| C-c C-p | Copy a file or a directory.                                     |
+| C-c C-a | neotree-collapse-all                                            |
+
+#+BEGIN_SRC emacs-lisp
+  (use-package neotree
+    :ensure t
+    :bind
+    (("s-t" . 'neotree-toggle))
+    :config
+    (setq neo-smart-open t)
+    (setq neo-theme 'arrow))
+#+END_SRC
+
+* paredit
+
+;;#+BEGIN_SRC emacs-lisp
+;;  (use-package paredit
+;;    :ensure t
+;;    :hook (('cider-repl-mode          . 'enable-paredit-mode)
+;;           ('cider-mode               . 'enable-paredit-mode)
+;;           ('clojure-mode             . 'enable-paredit-mode)
+;;           ('emacs-lisp-mode          . 'enable-paredit-mode)
+;;           ('ielm-mode                . 'enable-paredit-mode)
+;;           ('lisp-mode                . 'enable-paredit-mode)
+;;          ('lisp-interaction-mode    . 'enable-paredit-mode)
+;;           ('scheme-mode              . 'enable-paredit-mode)
+;;           ('rust-mode              . 'enable-paredit-mode)
+;;           ('python-mode              . 'enable-paredit-mode)
+;;           ('c++-mode              . 'enable-paredit-mode)
+;;           ('haskell-interactive-mode . 'enable-paredit-mode)))
+;;#+END_SRC
+
+* smartparens
+
+#+BEGIN_SRC emacs-lisp
+  (use-package smartparens
+    :ensure t
+    :hook (('prog-mode                . 'smartparens-mode)
+           ('LaTeX-mode               . 'smartparens-mode)
+           ('eshell-mode              . 'smartparens-mode)
+                    ('cider-mode               . 'smartparens-mode)
+            ('lisp-mode               . 'smartparens-mode)
+   ('python-mode               . 'smartparens-mode)
+
+
+           ('cider-repl-mode          . 'smartparens-mode)
+           ('haskell-interactive-mode . 'smartparens-mode))
+    :bind
+    (("C-M-a" . 'sp-beginning-of-sexp)
+     ("C-M-e" . 'sp-end-of-sexp)
+     ("C-M-f" . 'sp-forward-sexp)
+     ("C-M-b" . 'sp-backward-sexp)
+     ("C-M-n" . 'sp-next-sexp)
+     ("C-M-p" . 'sp-previous-sexp)
+     ("C-S-f" . 'sp-forward-symbol)
+     ("C-S-b" . 'sp-backward-symbol)
+     ("C-M-k" . 'sp-kill-sexp)
+     ("C-M-w" . 'sp-copy-sexp)
+     ("C-k"   . 'sp-kill-hybrid-sexp)
+     ("M-k"   . 'sp-backward-kill-sexp))
+    :config
+    (require 'smartparens-config))
+#+END_SRC
+
+* rainbow
+
+#+BEGIN_SRC emacs-lisp
+(use-package rainbow-delimiters
+  :ensure t
+  :hook ('prog-mode . 'rainbow-delimiters-mode))
+#+END_SRC
+
+* language server protocol
+
+- [[https://github.com/emacs-lsp/lsp-mode][lsp-mode]]
+- [[https://elixirforum.com/t/emacs-elixir-setup-configuration-wiki/19196][elixir lsp setup]]
+- [[https://github.com/rust-lang/rls][rust languague server]]
+
+** emacs lsp-mode setup
+
+use the following ~lsp-mode~ related config ~lsp-mode, lsp-ui, company-lsp, lsp-ivy, fly-check~
+
+** rust languague server setup
+
+*** install rust
+
+*** install components
+
+~rustup component add rls rust-analysis rust-src~
+
+*** config emacs
+
+- install ~rust-mode~
+- hook ~('rust-mode . 'lsp)~
+
+
+** python language server setup
+
+- use pipenv to manage virtualenv and dependencies
+- activate the env, and ~pip install 'python-language-server[all]'~
+- in Emacs, ~M-x pyvenv-activate~
+
+** config
+
+   #+BEGIN_SRC emacs-lisp
+           ;;https://robert.kra.hn/posts/2021-02-07_rust-with-emacs/
+          (use-package rustic
+          :ensure
+          :bind (:map rustic-mode-map
+                  ("M-j" . lsp-ui-imenu)
+                  ("M-?" . lsp-find-references)
+                  ("C-c C-c l" . flycheck-list-errors)
+                  ("C-c C-c a" . lsp-execute-code-action)
+                  ("C-c C-c r" . lsp-rename)
+                  ("C-c C-c q" . lsp-workspace-restart)
+                  ("C-c C-c Q" . lsp-workspace-shutdown)
+                  ("C-c C-c s" . lsp-rust-analyzer-status))
+          :config
+          ;; uncomment for less flashiness
+          ;; (setq lsp-eldoc-hook nil)
+          ;; (setq lsp-enable-symbol-highlighting nil)
+          ;; (setq lsp-signature-auto-activate nil)
+
+          ;; comment to disable rustfmt on save
+          (setq rustic-format-on-save t)
+          (add-hook 'rustic-mode-hook 'rk/rustic-mode-hook))
+
+          (defun rk/rustic-mode-hook ()
+          ;; so that run C-c C-c C-r works without having to confirm
+          (setq-local buffer-save-without-query t))
+
+          (use-package lsp-mode
+          :ensure
+          :commands lsp
+          :custom
+          ;; what to use when checking on-save. "check" is default, I prefer clippy
+          (lsp-rust-analyzer-cargo-watch-command "clippy")
+          (lsp-eldoc-render-all t)
+          (lsp-idle-delay 0.6)
+          (lsp-rust-analyzer-server-display-inlay-hints t)
+          :config
+          (add-hook 'lsp-mode-hook 'lsp-ui-mode)
+           :hook ((c++-mode . lsp)
+                  (python-mode . lsp)
+                  (rust-mode . lsp)
+                  (clojure-mode . lsp)
+                  (xml-mode . lsp)
+                  (f90-mode . lsp)))
+
+           ;; https://github.com/emacs-lsp/lsp-ui
+           ;;
+           ;; xref-find-{definitions,references} (bound to m-. m-?
+           (use-package lsp-ui
+             :ensure t
+             :defer 5
+             :commands lsp-ui-mode
+             :after lsp-mode
+             :config
+             (setq lsp-ui-peek-always-show t)
+             (setq lsp-ui-sideline-show-hover t)
+             (setq lsp-ui-doc-enable nil))
+
+          (add-to-list 'load-path "/Users/merlin/.emacs.d/company-lsp")
+          (autoload 'company-lsp "company-lsp" nil t)
+
+           (use-package flycheck
+             :ensure t
+             :defer 5
+             :after lsp-mode)
+
+           (use-package lsp-ivy
+             :ensure t
+             :defer 5
+             :after lsp-mode)
+
+   #+END_SRC
+
+* clojure and cider
+
+#+BEGIN_SRC emacs-lisp
+  (use-package clojure-mode
+    :ensure t
+    :defer 5
+    :hook (('clojure-mode . 'eldoc-mode))
+    :config
+    ;; compojure indentation
+    (define-clojure-indent
+      (defroutes 'defun)
+      (GET 2)
+      (POST 2)
+      (PUT 2)
+      (DELETE 2)
+      (HEAD 2)
+      (ANY 2)
+      (OPTIONS 2)
+      (PATCH 2)
+      (rfn 2)
+      (let-routes 1)
+      (context 2)))
+
+  (use-package cider
+    :ensure t
+    :after clojure-mode
+    :config
+    ;; go right to the REPL buffer when it's finished connecting
+    (setq cider-repl-pop-to-buffer-on-connect t)
+
+    ;; When there's a cider error, show its buffer and switch to it
+    (setq cider-show-error-buffer t)
+    (setq cider-auto-select-error-buffer t)
+    (setq cider-test-show-report-on-success t)
+
+    ;; Where to store the cider history.
+    (setq cider-repl-history-file "~/.emacs.d/cider-history")
+
+    ;; Wrap when navigating history.
+    (setq cider-repl-wrap-history t)
+
+    ;; turn off eldoc displayed when the cursor is over code
+    (setq cider-prompt-for-symbol nil)
+
+    ;; Just save without prompting, C-c C-k
+    (setq cider-prompt-save-file-on-load 'always-save)
+
+    ;; evaluate code in Clojure files, display result overlay to be font-locked
+    (setq cider-overlays-use-font-lock t)
+
+    (setq cider-refresh-show-log-buffer t)
+
+    (setq cider-repl-tab-command #'indent-for-tab-command)
+
+    (setq cider-eldoc-display-for-symbol-at-point nil)
+    (setq cider-repl-display-help-banner nil))
+#+END_SRC
+
+* python
+
+use lsp instead
+
+#+BEGIN_SRC emacs-lisp
+  ;; (defun python-mode-before-save-hook ()
+  ;;   (when (eq major-mode 'python-mode)
+  ;;     (elpy-format-code)))
+
+  ;; (use-package elpy
+  ;;   :ensure t
+  ;;   :defer 5
+  ;;   ;; M-<right> / M-<left> move block right/left
+  ;;   ;; M-<up>    / M-<down> move block up/down
+  ;;   :bind (("C-c M-f" . 'elpy-format-code)
+  ;;          ("C-M-n"   . 'elpy-nav-forward-block)
+  ;;          ("C-M-p"   . 'elpy-nav-backward-block))
+  ;;   :config (setq elpy-rpc-virtualenv-path 'current)
+  ;;   :hook ('before-save . #'python-mode-before-save-hook)
+  ;;   :init (advice-add 'python-mode :before 'elpy-enable))
+#+END_SRC
+
+* rust
+
+#+BEGIN_SRC emacs-lisp
+  (use-package rust-mode
+    :ensure t
+    :defer 5
+    :config
+   (setq rust-format-on-save t))
+;; enable atomatic code format on save
+  (add-hook 'before-save-hook (lambda() (when (eq 'rust-mode major-mode)
+                                        (lsp-format-buffer))))
+
+#+END_SRC
+
+
+* company
+
+#+BEGIN_SRC emacs-lisp
+  (use-package company
+    :ensure t
+    :hook (('prog-mode . 'global-company-mode)
+          (python-mode . company-mode)
+          (rust-mode . company-mode)
+          (c++-mode . company-mode)
+    )
+    :config
+    (setq comany-backends '(company-capf company-files company-keywords)
+      company-idle-delay 0.2)
+    (company-tng-configure-default)
+    (setq company-minimum-prefix-length 3)
+    (setq company-selection-wrap-around t)
+    (setq company-tooltip-align-annotations t)
+    :bind
+    (:map company-active-map
+        ("C-n". company-select-next)
+        ("C-p". company-select-previous)
+        ("M-<". company-select-first)
+        ("M->". company-select-last)))
+#+END_SRC
+
+* expand region
+
+#+BEGIN_SRC emacs-lisp
+  ;; C-- C-= : contract the region
+  (use-package expand-region
+    :ensure t
+    :defer 5
+    :bind
+    ("C-=" . 'er/expand-region))
+#+END_SRC
+
+* rest client
+
+| C-c C-c | runs the query under the cursor                |
+| C-c C-r | same but doesn't do anything with the response |
+| C-c C-v | same but doesn't switch focus to other window  |
+| TAB     | hide/show current request body                 |
+| C-c C-a | show all collapsed regions                     |
+
+#+BEGIN_SRC emacs-lisp
+  (use-package restclient
+    :ensure t
+    :defer 5
+    :mode ("\\.http\\'" . 'restclient-mode))
+
+  (use-package ob-restclient
+    :ensure t
+    :defer 5
+    :after restclient)
+#+END_SRC
+
+* org
+
+** narrow
+
+| C-x n        | narrow pretix                                                                                       |
+| C-x n s      | narrow subtree                                                                                      |
+| C-x n w      | widen                                                                                               |
+
+#+BEGIN_SRC emacs-lisp
+  (defun my/org-narrow-forward ()
+    "Move to the next subtree at same level, and narrow to it."
+    (interactive)
+    (widen)
+    (org-forward-heading-same-level 1)
+    (org-narrow-to-subtree))
+
+  (defun my/org-narrow-backward ()
+    "Move to the next subtree at same level, and narrow to it."
+    (interactive)
+    (widen)
+    (org-backward-heading-same-level 1)
+    (org-narrow-to-subtree))
+#+END_SRC
+
+** normal
+
+|--------------+-----------------------------------------------------------------------------------------------------|
+| C-u C-c C-c  | make plain list to checkbox list. cursor at the beginning will make the whole list to checkbox list |
+| M-S-RET      | will add a new item with a checkbox                                                                 |
+|--------------+-----------------------------------------------------------------------------------------------------|
+| C-c C-x p    | Set a property. This prompts for a property name and a value                                        |
+|--------------+-----------------------------------------------------------------------------------------------------|
+| C-c C-x f    | add The footnote                                                                                    |
+| C-c C-c      | Jump between definition and reference                                                               |
+|--------------+-----------------------------------------------------------------------------------------------------|
+| M-up/down    | move up/down current subtree                                                                        |
+| M-left/right | Promote/demote current subtree                                                                      |
+|--------------+-----------------------------------------------------------------------------------------------------|
+| C-c /        | sparse tree                                                                                         |
+|--------------+-----------------------------------------------------------------------------------------------------|
+| C-c C-t      | Rotate the TODO state of the current item among (unmarked) -> TODO -> DONE -> (unmarked)            |
+| S-M-RET      | insert TODO                                                                                         |
+|--------------+-----------------------------------------------------------------------------------------------------|
+| C-c C-q      | add tag                                                                                             |
+|--------------+-----------------------------------------------------------------------------------------------------|
+| M-TAB        | completion                                                                                          |
+
+** date, schedule
+
+- normal timestamp
+  < 2006-11-01 Wed 19:15 >
+- normal timestamp with repeater
+  < 2007-05-16 Wed 12:30 +1w >
+- timestamp range
+  < 2004-08-23 Mon >--< 2004-08-26 Thu >
+- timestamp won't be included in agenda
+  [ 2006-11-01 Wed ]
+
+
+|----------------+----------------------------------------------------------------------------------|
+| C-c .          | Prompt for a date and insert a corresponding timestamp                           |
+| C-c !          | but insert an inactive timestamp that will not cause an agenda entry             |
+| C-c C-d        | Insert ‘DEADLINE’ keyword along with a stamp in the line following the headline  |
+| C-c C-s        | Insert ‘SCHEDULED’ keyword along with a stamp in the line following the headline |
+|----------------+----------------------------------------------------------------------------------|
+| M-S-left/right | inc/dec month                                                                    |
+| S-left/right   | inc/dec day                                                                      |
+| S-up/down      | Change the item under the cursor in a timestamp                                  |
+|----------------+----------------------------------------------------------------------------------|
+
+** agenda
+|-------+--------------------------------------------------------------------|
+| C-c [ | Add current file to the list of agenda files.                      |
+| C-c ] | Remove current file from the list of agenda files.                 |
+| C-,   | Cycle through agenda file list, visiting one file after the other. |
+| C-c a | agenda view                                                        |
+|-------+--------------------------------------------------------------------|
+
+** config
+
+#+BEGIN_SRC emacs-lisp
+    (require 'ob-ipython)
+    (use-package org
+      :ensure t
+      :defer 5
+      :bind
+      (("C-c l"   . 'org-store-link)
+       ("C-c a"   . 'org-agenda)
+       ("C-c b"   . 'org-switchb)
+       ("C-c c"   . 'org-capture)
+       ("C-x n f" . 'my/org-narrow-forward)
+       ("C-x n b" . 'my/org-narrow-backward)
+       ("C-c M-." . 'org-open-at-point)
+       ("C-c M-," . 'org-mark-ring-goto))
+      :config
+      (org-babel-do-load-languages
+       'org-babel-load-languages
+       '((restclient . t)
+         (clojure    . t)
+         (python     . t)
+         (gnuplot    . t)
+         (ipython     . t)
+         (latex      . t)
+         (lisp       . t)
+         (maxima       . t)
+         (shell      . t)))
+      (setq org-startup-truncated nil)
+      ;; (setq org-link-frame-setup '((file . find-file)))
+      (add-to-list 'org-structure-template-alist
+                   '("el" "#+BEGIN_SRC emacs-lisp\n?\n#+END_SRC"))
+      (setq org-html-checkbox-type 'html)
+      (setq org-log-done 'time)
+      (setq org-hide-emphasis-markers t)
+      (setq org-image-actual-width nil)
+      (setq org-default-notes-file "~/.emacs.d/notes.org")
+      (setq org-todo-keywords
+            '((sequence "TODO" "DOING" "|" "DONE" "CANCEL"))))
+
+    (use-package org-bullets
+      :ensure t
+      :defer 5
+      :hook ('org-mode . 'org-bullets-mode)
+      ;; :config
+      ;; (setq org-bullets-bullet-list '("⓪" "①" "②" "③" "④" "⑤" "⑥" "⑦" "⑧" "⑨"))
+      :after org)
+
+    (use-package htmlize
+      :ensure t
+      :defer 5
+      :after org)
+
+    (use-package toc-org
+      :ensure t
+      :defer 5
+      :after org
+      :hook ('org-mode . 'toc-org-mode))
+
+    (use-package ox-gfm
+      :ensure t
+      :defer 5
+      :after org)
+
+    ;; https://github.com/yjwen/org-reveal
+    ;;
+    ;; Available themes can be found in “css/theme/” in the reveal.js directory. black|league|night|simple|solarized|beige|blood|moon|serif|sky|white
+    ;; Available transitions are: default|cube|page|concave|zoom|linear|fade|none.
+    (use-package ox-reveal
+      :ensure t
+      :defer 5
+      :after org
+      :config
+      (setq org-reveal-mathjax t)
+      (setq org-reveal-root "https://cdnjs.cloudflare.com/ajax/libs/reveal.js/3.8.0/")
+      )
+#+END_SRC
+
+* abbrev
+
+[[https://www.gnu.org/software/emacs/manual/html_node/emacs/Defining-Abbrevs.html][define abbrevs]]
+[[https://www.emacswiki.org/emacs/AbbrevMode][abbrev mode]]
+[[https://wilkesley.org/~ian/xah/emacs/emacs_abbrev_mode.html][abbrev mode tutorial]]
+
+| C-x a i g                                             | add-inverse-global                                           |
+| C-x a i l                                             | add-inverse-local                                            |
+| C-x a g                                               | add-global-abbrev                                            |
+| C-u 3 C-x a g                                         | how many words before point should be taken as the expansion |
+| C-x a l                                               | add-mode-abbrev                                              |
+| M-x define-global-abbrev <RET> abbrev <RET> exp <RET> | Define abbrev as an abbrev expanding into exp.               |
+
+#+BEGIN_SRC emacs-lisp
+  (setq-default abbrev-mode t)
+  (setq abbrev-file-name "~/.emacs.d/abbrev_defs")
+  (setq save-abbrevs 'silent)
+#+END_SRC
+
+* undo tree
+
+#+BEGIN_SRC emacs-lisp
+  ;; https://elpa.gnu.org/packages/undo-tree.html
+  ;; C-x u
+  ;; C-_  (`undo-tree-undo') Undo changes.
+  ;; M-_  (`undo-tree-redo') Redo changes.
+  ;; (use-package undo-tree
+  ;;   :ensure t
+  ;;   :init
+  ;;   (global-undo-tree-mode))
+#+END_SRC
+
+* misc packages
+
+#+BEGIN_SRC emacs-lisp
+  (use-package yaml-mode
+    :ensure t
+    :defer 5)
+
+  (use-package toml-mode
+    :ensure t
+    :defer 5)
+
+  (use-package markdown-mode
+    :ensure t
+    :defer 5)
+
+  (use-package json-mode
+    :ensure t
+    :defer 5)
+
+  (use-package dockerfile-mode
+    :ensure t
+    :defer 5)
+
+  (use-package docker-compose-mode
+    :ensure t
+    :defer 5)
+#+END_SRC
+* avy
+[[https://github.com/abo-abo/avy][avy]]
+
+#+BEGIN_SRC emacs-lisp
+  (use-package avy
+    :ensure t
+    :bind
+    (("s-c" . 'avy-goto-char-2)))
+#+END_SRC
+
+* Highlights matching parenthesis
+
+#+BEGIN_SRC emacs-lisp
+  ;; https://github.com/tarsius/paren-face
+  (use-package paren-face
+    :ensure t
+    :config
+    (setq show-paren-delay 0)
+    (show-paren-mode 1)
+    (set-face-background 'show-paren-match (face-background 'default))
+    (set-face-foreground 'show-paren-match "red")
+    (set-face-attribute 'show-paren-match nil :strike-through t :weight 'extra-bold))
+#+END_SRC
+
+* whitespace cleanup
+
+#+BEGIN_SRC emacs-lisp
+  ;;;; trailing whitespace
+  ;; https://stackoverflow.com/questions/34531831/highlighting-trailing-whitespace-in-emacs-without-changing-character
+  (setq-default show-trailing-whitespace t)
+
+  ;; https://www.gnu.org/software/emacs/manual/html_node/emacs/Useless-Whitespace.html
+  ;; (global-whitespace-mode)
+
+  (use-package whitespace-cleanup-mode
+    :ensure t
+    :bind (("C-c C-SPC". 'whitespace-cleanup))
+    :hook
+    (('prog-mode . 'whitespace-cleanup-mode)
+     ('before-save . 'whitespace-cleanup)))
+#+END_SRC
+* pdf-tools
+
+[[https://github.com/politza/pdf-tools][pdf-tools]]
+
+** keys
+
+#+caption: Navigation
+| content                                    | key               |
+|--------------------------------------------+-------------------|
+| Scroll Up / Down by page-full              | space / backspace |
+| Scroll Up / Down by line                   | C-n / C-p         |
+| Scroll Right / Left                        | C-f / C-b         |
+| Top of Page / Bottom of Page               | < / >             |
+| Next Page / Previous Page                  | n / p             |
+| First Page / Last Page                     | M-< / M->         |
+| Incremental Search Forward / Backward      | C-s / C-r         |
+| Occur (list all lines containing a phrase) | M-s o             |
+| Pick a Link and Jump                       | F                 |
+| Incremental Search in Links                | f                 |
+| History Back / Forwards                    | B / N             |
+| Display Outline                            | o                 |
+| Jump to Page                               | M-g g             |
+
+#+caption: Display
+| content                                  | key       |
+|------------------------------------------+-----------|
+| Zoom in / Zoom out                       | + / -     |
+| Fit Height / Fit Width / Fit Page        | H / W / P |
+| Trim margins (set slice to bounding box) | s b       |
+| Reset margins                            | s r       |
+| Reset Zoom                               | 0         |
+
+** config
+
+#+BEGIN_SRC emacs-lisp
+  (use-package tablist
+    :ensure t
+    :defer 5)
+
+  (use-package pdf-tools
+    :ensure t
+    :defer 5
+    :config
+    (pdf-loader-install))
+
+#+END_SRC
+* google this
+
+#+BEGIN_SRC emacs-lisp
+  (use-package google-this
+    :ensure t
+    :defer 5)
+
+  (global-set-key (kbd "C-x /") 'google-this-mode-submap)
+#+END_SRC
+
+* fci fill-column-indicator
+
+|-------+-----------------|
+| C-x f | set-fill-column |
+| M-q   | fill-paragraph  |
+
+#+BEGIN_SRC emacs-lisp
+  (use-package fill-column-indicator
+    :ensure t
+    ;; :hook
+    ;; (('prog-mode . 'fci-mode))
+    :config
+    ;; (require 'fill-column-indicator)
+    (setq fci-rule-column 80))
+
+  (global-set-key (kbd "C-c q") 'auto-fill-mode)
+#+END_SRC
+* ispell
+
+| i | in ispell proc, insert to private dictionary |
+
+
+#+BEGIN_SRC emacs-lisp
+  (setq ispell-personal-dictionary "~/.emacs.d/ispell_dicts")
+  (global-set-key (kbd "M-$")   'ispell-word)
+  (global-set-key (kbd "C-M-i") 'ispell-complete-word)
+#+END_SRC
+* replace
+
+** unconditional replace
+
+#+BEGIN_SRC emacs-lisp
+  (global-set-key (kbd "C-r") 'replace-string)
+#+END_SRC
+
+** query replace
+
+~M-%~
+
+| y or space | Replace text and find the next occurrence      |
+| n or del   | Leave text as is and find the next occurrence  |
+| .          | Replace text then stop looking for occurrences |
+| q or RET   | exit                                           |
+| !          | Replace all occurrences without asking         |
+| ^          | Return the cursor to previously replaced text  |
+| u          | to undo previous replacement                   |
+| U          | to undo all replacements                       |
+| E          | to edit the replacement string                 |
+* macros
+
+|--------------------+-----------------------------|
+| C-x C-k            | kmacro prefix               |
+|--------------------+-----------------------------|
+| C-x (              | start kmacro                |
+| C-x )              | end kmacro                  |
+| C-x e              | call last kmacro            |
+|--------------------+-----------------------------|
+| C-x C-k n          | name-last-kbd-macro         |
+| m-x the-macro-name | exec the kmacro by name     |
+| C-x C-k r          | apply-macro-to-region-lines |
+| C-x C-k b          | kmacro-bind-to-key          |
+|--------------------+-----------------------------|
+
+* mark ring
+
+| C-Space C-Space | to push current position into mark ring                            |
+| C-u C-Space     | Move cursor to previous marked position in current buffer          |
+| C-x C-Space     | Move cursor to previous marked position (may be in another buffer) |
+| C-x C-x         | Move cursor to the other end of selection                          |
+
+* transpose
+
+| transpose char  | Ctrl+t        |
+| transpose word  | Meta+t        |
+| transpose line  | Ctrl+x Ctrl+t |
+| transpose sexps | Ctrl+Meta+t   |
+
+* buffer move
+
+#+BEGIN_SRC emacs-lisp
+  (use-package buffer-move
+    :ensure t
+    :defer 5)
+
+  (global-set-key (kbd "<C-S-up>")     'buf-move-up)
+  (global-set-key (kbd "<C-S-down>")   'buf-move-down)
+  (global-set-key (kbd "<C-S-left>")   'buf-move-left)
+  (global-set-key (kbd "<C-S-right>")  'buf-move-right)
+#+END_SRC
+
+* dired
+
+| C-x C-q | edit               |
+| t       | toggle mark        |
+| u/U     | unmark/ unmark all |
+| m       | mark               |
+| d       | mark to delete     |
+| D       | delete             |
+| C       | copy               |
+| R       | move, rename       |
+| ~^~       | parent dir         |
+| +       | create dir         |
+| *-/     | mark all dirs      |
+| s       | sort               |
+| C-o     | display file       |
+| ~!~       | do shell command   |
+|         |                    |
+
+* command log
+
+| Alt+x | global-command-log-mode (optional. Turn on logging for any buffer) |
+| Alt+x | clm/open-command-log-buffer (show the key/command output buffer)   |
+
+#+BEGIN_SRC emacs-lisp
+  (use-package command-log-mode
+    :ensure t)
+#+END_SRC
+
+* window enlarge
+
+#+BEGIN_SRC emacs-lisp
+  ;; enlarge window vertically
+  (global-set-key (kbd "C-c C-6") (kbd "C-u - 2 0 C-x ^"))
+  ;; (global-set-key (kbd "C-c C-6") )
+
+  ;; enlarge window horizontally
+  (global-set-key (kbd "C-c C-]") (kbd "C-u - 2 0 C-x }"))
+#+END_SRC
+
+* bookmarks
+
+| C-x r m | Set a bookmark   |
+| C-x r l | List bookmarks   |
+| C-x r b | Jump to bookmark |
+
+* occur and highlight
+
+#+BEGIN_SRC emacs-lisp
+  (global-set-key (kbd "C-c o") 'occur)
+#+END_SRC
+
+| M-s o           | List lines matching a pattern        |
+| M-x flush-lines | Flushes lines matching a pattern     |
+| M-x keep-lines  | Keeps only lines matching a pattern  |
+|-----------------+--------------------------------------|
+| M-s h p         | Highlights a phrase                  |
+| M-s h r         | Highlights a regular expression      |
+| M-s h .         | Highlights symbol at the point       |
+| M-s h u         | Removes highlighting under the point |
+
+* quoted insert
+
+C-q ARG
+
+Read next input character and insert it.
+This is useful for inserting control characters.
+such as, you want to insert TAB, , etc.
+
+* dashboard
+
+#+BEGIN_SRC emacs-lisp
+  ;; (use-package dashboard
+  ;;   :ensure t
+  ;;   :config
+  ;;   (dashboard-setup-startup-hook)
+
+  ;;   (setq dashboard-startup-banner 'official)
+  ;;   (setq dashboard-banner-logo-title "Welcome to Emacs")
+  ;;   (setq dashboard-set-init-info t)
+  ;;   (setq dashboard-set-footer t)
+
+  ;;   (setq dashboard-items '((projects . 5)
+  ;;                           (recents  . 5))))
+#+END_SRC
+
+* gnuplot
+
+#+BEGIN_SRC emacs-lisp
+    ;; gnuplot
+    (defvar gnuplot-program "/usr/local/bin/gnuplot")
+    (defvar gnuplot-flags "-persist -pointsize 2")
+
+  (use-package gnuplot
+    :defer t)
+
+    (eval-after-load 'gnuplot-mode
+      '(add-hook 'gnuplot-mode-hook
+      (lambda ()
+        (flyspell-prog-mode)
+        (add-hook 'before-save-hook 'whitespace-cleanup nil t))))
+#+END_SRC
+
+ * add Sublimet
+
+#+BEGIN_SRC emacs-lisp
+(require 'slime)
+   (setq inferior-lisp-program "/usr/local/bin/sbcl")
+
+   
+   (setq slime-net-coding-system 'utf-8-unix)
+   (slime-connect "127.0.0.1" 4005)
+#+END_SRC
+
+* Add newlisp mode
+
+#+BEGIN_SRC emacs-lisp
+;; newLISP mode
+
+(add-to-list 'load-path (expand-file-name "~/.emacs.d/newlisp-mode/"))
+(load-file "~/.emacs.d/newlisp-mode/newlisp.el")
+;;(add-to-list 'auto-mode-alist '("\\.lsp$" . newlisp-mode
+;;                             ))
+
+
+(require 'newlisp-mode)
+
+
+;; Make Emacs' "speedbar" recognize newlisp files
+(eval-after-load "speedbar" '(speedbar-add-supported-extension ".lsp"))
+
+;; Another way to use C-x C-e to eval stuff and doesn't jump to next function
+(define-key newlisp-mode-map [(control x) (control e)] 'newlisp-evaluate-prev-sexp)
+
+
+(use-package newlisp-mode
+  :load-path "~/.emace.d/newlisp-mode"
+  :mode "\\.lsp\\'"
+  :bind (:map newlisp-mode-map
+              ("C-c h" . newlisp-lookup-manual))
+  :config
+  ;;(add-hook 'newlisp-mode-hook 'eldoc-mode)
+  (setq newlisp-manual-text "~/Documents/newlisp/newlisp_manual.txt"))
+
+
+;;; swank-newlisp
+(defun swank-newlisp-init (port-filename coding-system)
+  (format "%S\n" `(swank:start-server ,port-filename)))
+
+;; (setq slime-protocol-version nil)     ; (slime-changelog-date)
+(defun slime-newlisp ()
+  (interactive)
+  (let ((slime-lisp-implementations
+         `((newlisp ("newlisp" "-n" ,(locate-file "swank-newlisp.lsp" load-path))
+                    :init swank-newlisp-init
+                    :coding-system utf-8-unix
+                    )) ))
+    (slime 'newlisp)))
+
+;;;
+#+END_SRC
+
+* CP2K
+
+#+BEGIN_SRC emacs-lisp
+(add-to-list 'load-path "~/.emacs.d/cp2k-lsp/")
+(require 'cp2k-mode nil 'noerror)
+(add-to-list 'auto-mode-alist '("\\.inp\\'" . cp2k-mode))
+#+END_SRC
+
+* org-ref
+
+#+BEGIN_SRC  emacs-lisp
+(use-package org-ref)
+#+END_SRC
+
+* org-latex
+
+#+BEGIN_SRC  emacs-lisp
+
+   (add-to-list 'org-latex-classes
+     '("beamer"
+       "\\documentclass[ignorenonframetext,presentation]{beamer}"
+       ("\\section{%s}" . "\\section*{%s}")
+      ("\\subsection{%s}" . "\\subsection*{%s}"))
+    '("ctexart"
+       "\\documentclass[11pt]{ctexart}
+   [NO-DEFAULT-PACKAGES]
+   \\usepackage[utf8]{inputenc}
+   \\usepackage[T1]{fontenc}
+   \\usepackage{fixltx2e}
+   \\usepackage{graphicx}
+   \\usepackage{longtable}
+   \\usepackage{float}
+   \\usepackage{wrapfig}
+   \\usepackage{rotating}
+   \\usepackage[normalem]{ulem}
+   \\usepackage{amsmath}
+   \\usepackage{textcomp}
+   \\usepackage{marvosym}
+   \\usepackage{wasysym}
+   \\usepackage{listings}
+   \\usepackage{amssymb}
+   \\usepackage{booktabs}
+   \\usepackage[colorlinks,linkcolor=black,anchorcolor=red,citecolor=black]{hyperref}
+   \\tolerance=1000
+
+   % 设置源码格式
+   \\lstset{framexleftmargin=5mm, frame=shadowbox, rulesepcolor=\\color{blue}}
+   \\lstset{basicstyle=\\tiny}
+   \\lstset{postbreak=\\space, breakindent=5pt, breaklines}
+
+   % 设置verbatim的字体大小
+   \\makeatletter
+   \\def\\verbatim{\\tiny\\@verbatim \\frenchspacing\\@vobeyspaces \\@xverbatim}
+   \\makeatother
+   "
+                                     ("\\section{%s}" . "\\section*{%s}")
+                                     ("\\subsection{%s}" . "\\subsection*{%s}")
+                                     ("\\subsubsection{%s}" . "\\subsubsection*{%s}")
+                                     ("\\paragraph{%s}" . "\\paragraph*{%s}")
+                                     ("\\subparagraph{%s}" . "\\subparagraph*{%s}")))
+ 
+   #(setq org-latex-default-class "ctexart")
+
+
+(add-to-list 'org-preview-latex-process-alist '(xdvsvgm :progams
+							("xelatex" "dvisvgm")
+							:discription "xdv > svg"
+							:message "you need install the programs: xelatex and dvisvgm."
+							:image-input-type "xdv"
+							:image-output-type "svg"
+							:image-size-adjust (1.7 . 1.5)
+							:latex-compiler ("xelatex -interaction nonstopmode -no-pdf -output-directory %o %f")
+							:image-converter ("dvisvgm %f -n -b min -c %S -o %O")))
+(setq org-preview-latex-default-process 'xdvsvgm)
+
+;; install org2ctex
+   (require 'org2ctex)
+   (org2ctex-toggle t)
+   (setq org2ctex-latex-fonts nil)
+
+#+END_SRC
+
+
+#+BEGIN_SRC emacs-lisp
+#
+(setq org-latex-compiler "xelatex")
+(setq org-latex-pdf-process '("xelatex %f"))
+(add-to-list 'org-latex-default-packages-alist '("" "ctex" t ("xelatex")))
+
+(setq-default TeX-engine 'xetex)
+(setq org-latex-pdf-process '("xelatex -interaction nonstopmode %f"
+                              "xelatex -interaction nonstopmode %f"))
+
+#+END_SRC
+
+*代码风格控制
+
+#+BEGIN_SRC emacs-lisp
+(setq org-latex-listings 'minted)
+(setq org-latex-minted-options
+      '(
+        ("bgcolor" "bg")
+        ("breaklines" "true")
+        ("autogobble" "true")
+        ("fontsize" "\\small")
+       )
+)
+#+END_SRC
+
+* 加入imaxima
+
+#+BEGIN_SRC emacs-lisp
+;; for MacPorts users
+(setq temporary-file-directory "/tmp/")
+;; for tex, ghostscript, gnuplot, and Maxima
+(push "/opt/local/bin" exec-path)
+(setenv "PATH"
+        (concat "/opt/local/bin:"
+                (getenv "PATH") ))
+(setq imaxima-maxima-program "maxima")
+;; for imaxima
+(push "/opt/local/share/emacs/site-lisp/" load-path)
+
+
+(autoload 'imaxima "imaxima" "Maxima frontend" t)
+(autoload 'imath-mode "imath" "Interactive Math mode" t)
+
+(use-package maxima
+  :straight (maxima :type git :host gitlab :repo "sasanidas/maxima")
+  :init
+  (add-hook 'maxima-mode-hook #'maxima-hook-function)
+  (add-hook 'maxima-inferior-mode-hook #'maxima-hook-function)
+  (setq
+   org-format-latex-options (plist-put org-format-latex-options :scale 2.0)
+   maxima-display-maxima-buffer nil)
+  :mode ("\\.mac\\'" . maxima-mode)
+  :interpreter ("maxima" . maxima-mode))
+#+END_SRC
+
+* Footnotes
+
+[fn:1] [[https://emacs.stackexchange.com/questions/10611/how-to-easily-cherry-pick-with-magit][cherry pick with magit]]
+[fn:2] [[https://www.emacswiki.org/emacs/MagitCherryPick][magit cherry pick]]
